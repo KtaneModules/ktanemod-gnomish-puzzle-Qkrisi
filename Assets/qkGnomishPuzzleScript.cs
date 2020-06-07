@@ -30,6 +30,8 @@ public class qkGnomishPuzzleScript : MonoBehaviour {
     private bool ableToInteract = true;
     private List<string> logText = new List<string>();
 
+    private bool _forcesolve = false;
+
     int moduleId;
     static int moduleIdCounter;
 
@@ -199,7 +201,7 @@ public class qkGnomishPuzzleScript : MonoBehaviour {
                 }
             }
             Debug.LogFormat("[Gnomish Puzzle #{0}] {1} lever pulled.", moduleId, num == 1 ? "Left" : num == 2 ? "Middle" : "Right");
-            GetComponent<KMAudio>().PlaySoundAtTransform("LeverPull", Lever.transform);
+            //GetComponent<KMAudio>().PlaySoundAtTransform("LeverPull", Lever.transform);
             for (int i = 0; i < 36; i++)
             {
                 Lever.transform.Rotate(-2.5f, 0, 0);
@@ -290,8 +292,10 @@ public class qkGnomishPuzzleScript : MonoBehaviour {
 
     IEnumerator TwitchHandleForcedSolve()
     {
-        yield return true;
         FinalizeLog();
+        _forcesolve = true;
+        yield return new WaitUntil(() => ableToInteract);
+        List<IEnumerator> coros = new List<IEnumerator>();
         foreach (string lever in logText)
         {
             switch (lever)
@@ -316,6 +320,11 @@ public class qkGnomishPuzzleScript : MonoBehaviour {
 #pragma warning restore 414
     IEnumerator ProcessTwitchCommand(string command)
     {
+        if(_forcesolve)
+        {
+            yield return "sendtochaterror A force-solving is already in progress.";
+            yield break;
+        }
         string[] splitted = command.ToLowerInvariant().Replace("flip ", "").Split(',');
         List<KMSelectable> objects = new List<KMSelectable>();
         foreach (string item in splitted)
@@ -344,11 +353,11 @@ public class qkGnomishPuzzleScript : MonoBehaviour {
                     break;
             }
         }
-        foreach (KMSelectable objectToPress in objects)
+        foreach(var obj in objects)
         {
             yield return null;
             yield return new WaitUntil(() => ableToInteract);
-            objectToPress.OnInteract();
+            obj.OnInteract();
             yield return new WaitUntil(() => ableToInteract);
         }
     }

@@ -292,10 +292,9 @@ public class qkGnomishPuzzleScript : MonoBehaviour {
 
     IEnumerator TwitchHandleForcedSolve()
     {
-        FinalizeLog();
         _forcesolve = true;
         yield return new WaitUntil(() => ableToInteract);
-        List<IEnumerator> coros = new List<IEnumerator>();
+        FinalizeLog();
         foreach (string lever in logText)
         {
             switch (lever)

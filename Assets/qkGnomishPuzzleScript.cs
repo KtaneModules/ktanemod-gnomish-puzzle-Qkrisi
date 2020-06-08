@@ -200,7 +200,7 @@ public class qkGnomishPuzzleScript : MonoBehaviour {
                         break;
                 }
             }
-            Debug.LogFormat("[Gnomish Puzzle #{0}] {1} lever pulled.", moduleId, num == 1 ? "Left" : num == 2 ? "Middle" : "Right");
+            if(!forceSolve) Debug.LogFormat("[Gnomish Puzzle #{0}] {1} lever pulled.", moduleId, num == 1 ? "Left" : num == 2 ? "Middle" : "Right");
             //GetComponent<KMAudio>().PlaySoundAtTransform("LeverPull", Lever.transform);
             for (int i = 0; i < 36; i++)
             {
@@ -226,7 +226,7 @@ public class qkGnomishPuzzleScript : MonoBehaviour {
             }
             yield return new WaitUntil(() => !objectDict[SymbolOBJs[0]] && !objectDict[SymbolOBJs[1]] && !objectDict[SymbolOBJs[2]] && !objectDict[SymbolOBJs[3]] && !objectDict[SymbolOBJs[4]] && !objectDict[SymbolOBJs[5]] && !objectDict[SymbolOBJs[6]]);
             ableToInteract = true;
-            if (getSolve()) { Debug.LogFormat("[Gnomish Puzzle #{0}] All symbols are on the correct positions! Module solved!", moduleId); solved = true; GetComponent<KMBombModule>().HandlePass(); }
+            if (getSolve()) { if(!forceSolve) Debug.LogFormat("[Gnomish Puzzle #{0}] All symbols are on the correct positions! Module solved!", moduleId); solved = true; GetComponent<KMBombModule>().HandlePass(); }
             if (first && judge)
             {
                 first = false;
@@ -295,6 +295,7 @@ public class qkGnomishPuzzleScript : MonoBehaviour {
         _forcesolve = true;
         yield return new WaitUntil(() => ableToInteract);
         FinalizeLog();
+        Debug.LogFormat("[Gnomish Puzzle #{0}] Force-solving module...", moduleId);
         foreach (string lever in logText)
         {
             switch (lever)

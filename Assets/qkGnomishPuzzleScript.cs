@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using RND = UnityEngine.Random;
 
@@ -29,7 +30,6 @@ public class qkGnomishPuzzleScript : MonoBehaviour {
     private bool solved = false;
     private bool ableToInteract = true;
     private List<string> logText = new List<string>();
-
     private bool _forcesolve = false;
 
     int moduleId;
@@ -84,12 +84,12 @@ public class qkGnomishPuzzleScript : MonoBehaviour {
         Levers[0].GetComponent<KMSelectable>().OnInteract += () => startInteraction(1, Levers[0]);
         Levers[1].GetComponent<KMSelectable>().OnInteract += () => startInteraction(2, Levers[1]);
         Levers[2].GetComponent<KMSelectable>().OnInteract += () => startInteraction(3, Levers[2]);
-        Debug.LogFormat("[Gnomish Puzzle #{0}] Starting order is: {1} {2} {3} {4} {5} {6} {7}", moduleId, SymbolNames[0], SymbolNames[1], SymbolNames[2], SymbolNames[3], SymbolNames[4], SymbolNames[5], SymbolNames[6]);
-        Debug.LogFormat("[Gnomish Puzzle #{0}] Final order is: {1} {2} {3} {4} {5} {6} {7}", moduleId, finalOrder[0], finalOrder[1], finalOrder[2], finalOrder[3], finalOrder[4], finalOrder[5], finalOrder[6]);
-        Debug.LogFormat("[Gnomish Puzzle #{0}] You are {1}worthy", moduleId, judge ? "" : "not ");
+        Debug.LogFormat("[Gnomish Puzzle #{0}] Starting order: {1}", moduleId, SymbolNames.Join());
+        Debug.LogFormat("[Gnomish Puzzle #{0}] The judges deem you {1}worthy.", moduleId, judge ? "" : "not ");
+        Debug.LogFormat("[Gnomish Puzzle #{0}] Final order: {1}", moduleId, finalOrder.Join());
         FinalizeLog();
         logText.Reverse();
-        Debug.LogFormat("[Gnomish Puzzle #{0}] One possible solution: {1}", moduleId, String.Join(", ", logText.ToArray()));
+        Debug.LogFormat("[Gnomish Puzzle #{0}] One possible sequence to solve: {1}", moduleId, string.Join(", ", logText.ToArray()));
     }
 
     private void FinalizeLog()
@@ -153,7 +153,7 @@ public class qkGnomishPuzzleScript : MonoBehaviour {
         }
         return;
     }
-    private bool getSolve() { if (SymbolNames[0] == finalOrder[0] && SymbolNames[1] == finalOrder[1] && SymbolNames[2] == finalOrder[2] && SymbolNames[3] == finalOrder[3] && SymbolNames[4] == finalOrder[4] && SymbolNames[5] == finalOrder[5] && SymbolNames[6] == finalOrder[6]) { return true; } else { return false; } }
+    private bool getSolve() { return SymbolNames.SequenceEqual(finalOrder); }
 
     bool startInteraction(int num, GameObject Lever)
     {
@@ -182,31 +182,39 @@ public class qkGnomishPuzzleScript : MonoBehaviour {
                     objectsToInteract = new List<GameObject>() { SymbolOBJs[0], SymbolOBJs[1], SymbolOBJs[2], SymbolOBJs[3], SymbolOBJs[4], SymbolOBJs[5], SymbolOBJs[6] };
                     break;
             }
-            if (!forceSolve && logText.Count > 0)
+            if (!forceSolve)
             {
-                switch (num)
+                if (logText.Any())
                 {
-                    case 1:
-                        if (logText[0] == "Left") logText.RemoveAt(0);
-                        else { logText.Insert(0, "Right"); }
-                        break;
-                    case 2:
-                        if (logText[0] == "Middle") logText.RemoveAt(0);
-                        else { logText.Insert(0, "Middle"); }
-                        break;
-                    case 3:
-                        if (logText[0] == "Right") logText.RemoveAt(0);
-                        else { logText.Insert(0, "Left"); }
-                        break;
+                    switch (num)
+                    {
+                        case 1:
+                            if (logText[0] == "Left") logText.RemoveAt(0);
+                            else { logText.Insert(0, "Right"); }
+                            break;
+                        case 2:
+                            if (logText[0] == "Middle") logText.RemoveAt(0);
+                            else { logText.Insert(0, "Middle"); }
+                            break;
+                        case 3:
+                            if (logText[0] == "Right") logText.RemoveAt(0);
+                            else { logText.Insert(0, "Left"); }
+                            break;
+                    }
                 }
+                Debug.LogFormat("[Gnomish Puzzle #{0}] {1} lever pulled.", moduleId, num == 1 ? "Left" : num == 2 ? "Middle" : "Right");
+                Debug.LogFormat("[Gnomish Puzzle #{0}] Resulting in the current formation: {1}", moduleId, SymbolNames.Join());
             }
-            if(!forceSolve) Debug.LogFormat("[Gnomish Puzzle #{0}] {1} lever pulled.", moduleId, num == 1 ? "Left" : num == 2 ? "Middle" : "Right");
             //GetComponent<KMAudio>().PlaySoundAtTransform("LeverPull", Lever.transform);
-            for (int i = 0; i < 36; i++)
+            var amountToModify = Quaternion.Euler(-90, 0, 0);
+            var startRotation = Lever.transform.localRotation;
+            var resultingRotation = startRotation * amountToModify;
+            for (float i = 0; i < 1; i += Time.deltaTime * 5)
             {
-                Lever.transform.Rotate(-2.5f, 0, 0);
-                yield return new WaitForSeconds(0.0005f);
+                Lever.transform.localRotation = Quaternion.Lerp(startRotation, resultingRotation, i);
+                yield return null;
             }
+            Lever.transform.localRotation = resultingRotation;
             if (num != 2)
             {
                 for (int i = 0; i < objectsToInteract.Count; i++)
@@ -219,11 +227,12 @@ public class qkGnomishPuzzleScript : MonoBehaviour {
                 StartCoroutine(Flip(objectsToInteract[0], 2, num));
                 StartCoroutine(Flip(objectsToInteract[1], 4, num));
             }
-            for (int i = 0; i < 36; i++)
+            for (float i = 0; i < 1; i += Time.deltaTime * 5)
             {
-                Lever.transform.Rotate(2.5f, 0, 0);
-                yield return new WaitForSeconds(0.0005f);
+                Lever.transform.localRotation = Quaternion.Lerp(startRotation, resultingRotation, 1f - i);
+                yield return null;
             }
+            Lever.transform.localRotation = startRotation;
             yield return new WaitUntil(() => !objectDict[SymbolOBJs[0]] && !objectDict[SymbolOBJs[1]] && !objectDict[SymbolOBJs[2]] && !objectDict[SymbolOBJs[3]] && !objectDict[SymbolOBJs[4]] && !objectDict[SymbolOBJs[5]] && !objectDict[SymbolOBJs[6]]);
             ableToInteract = true;
             if (getSolve()) { if(!forceSolve) Debug.LogFormat("[Gnomish Puzzle #{0}] All symbols are on the correct positions! Module solved!", moduleId); solved = true; GetComponent<KMBombModule>().HandlePass(); }
@@ -241,31 +250,31 @@ public class qkGnomishPuzzleScript : MonoBehaviour {
     IEnumerator TextFader(Func<bool> pred)
     {
         yield return new WaitUntil(pred);
-        for (int i = 0; i < 64; i++)
+        for (float i = 0; i < 1; i += Time.deltaTime)
         {
             var comp = judgeText.GetComponent<TextMesh>();
-            var c = new Color(comp.color.r, comp.color.g, comp.color.b, comp.color.a);
-            c.a += 3.984375f / 255f;
-            judgeText.GetComponent<TextMesh>().color = c;
-            yield return new WaitForSeconds(0.0001f);
+            comp.color = new Color(i, i, i, i);
+            yield return null;
         }
-        for (int i = 0; i < 64; i++)
+        for (float i = 0; i < 1; i += Time.deltaTime)
         {
             var comp = judgeText.GetComponent<TextMesh>();
-            var c = new Color(comp.color.r, comp.color.g, comp.color.b, comp.color.a);
-            c.a -= 3.984375f / 255f;
-            judgeText.GetComponent<TextMesh>().color = c;
-            yield return new WaitForSeconds(0.0001f);
+            comp.color = new Color(1f - i, 1f - i, 1f - i, 1f - i);
+            yield return null;
         }
+        judgeText.GetComponent<TextMesh>().color = Color.clear;
     }
     IEnumerator TextMover(Func<bool> pred)
     {
         yield return new WaitUntil(pred);
-        for (int i = 0; i < 128; i++)
+        var startTransform = judgeText.transform.localPosition;
+        var resultingTransformLocal = startTransform + (Vector3.right * 0.0256f);
+        for (float t = 0; t < 1f; t += Time.deltaTime / 2)
         {
-            judgeText.transform.localPosition = new Vector3(judgeText.transform.localPosition.x + 0.0002f, judgeText.transform.localPosition.y, judgeText.transform.localPosition.z);
-            yield return new WaitForSeconds(0.0001f);
+            judgeText.transform.localPosition = Vector3.Lerp(startTransform, resultingTransformLocal, t);
+            yield return null;
         }
+        judgeText.transform.localPosition = resultingTransformLocal;
     }
     IEnumerator Flip(GameObject Object, int id, int movenum)
     {
@@ -273,17 +282,25 @@ public class qkGnomishPuzzleScript : MonoBehaviour {
         objectDict[Object] = true;
         if (movenum == 2) { yield return new WaitUntil(() => objectDict[SymbolOBJs[2]] && objectDict[SymbolOBJs[4]]); }
         else { yield return new WaitUntil(() => objectDict[SymbolOBJs[0]] && objectDict[SymbolOBJs[1]] && objectDict[SymbolOBJs[2]] && objectDict[SymbolOBJs[3]] && objectDict[SymbolOBJs[4]] && objectDict[SymbolOBJs[5]] && objectDict[SymbolOBJs[6]]); }
-        for (int i = 0; i < 20; i++)
+        var rotationFlipAmt = Quaternion.Euler(Vector3.right * 180);
+        var resultingRotation = Object.transform.localRotation * rotationFlipAmt;
+        var startingRotation = Object.transform.localRotation;
+        var startingRotationOrgin = Object.transform.localRotation;
+        for (float t = 0; t < 1f; t += Time.deltaTime * 4)
         {
-            Object.transform.Rotate(Vector3.right, 9);
-            yield return new WaitForSeconds(.015f);
+            Object.transform.localRotation = Quaternion.Lerp(startingRotation, resultingRotation, t);
+            yield return null;
         }
+        Object.transform.localRotation = resultingRotation;
+        startingRotation = resultingRotation;
+        resultingRotation = startingRotation * rotationFlipAmt;
         Object.GetComponent<Renderer>().material = materialDict[SymbolNames[id]];
-        for (int i = 0; i < 20; i++)
+        for (float t = 0; t < 1f; t += Time.deltaTime * 4)
         {
-            Object.transform.Rotate(Vector3.right, 9);
-            yield return new WaitForSeconds(.015f);
+            Object.transform.localRotation = Quaternion.Lerp(startingRotation, resultingRotation, t);
+            yield return null;
         }
+        Object.transform.localRotation = startingRotationOrgin;
         if (SymbolNames[id] == finalOrder[id]) { LEDOBJs[id].GetComponent<Renderer>().material = Lit; }
         else { LEDOBJs[id].GetComponent<Renderer>().material = unLit; }
         objectDict[Object] = false;
@@ -316,7 +333,7 @@ public class qkGnomishPuzzleScript : MonoBehaviour {
 
 #pragma warning disable 414
     [HideInInspector]
-    public string TwitchHelpMessage = "Use '!{0} flip <name>,<name2>' Names can be: Left, Middle, Right, L, M, R, 1, 2 ,3 (Levers are numbered in reading order)";
+    public string TwitchHelpMessage = "Use '!{0} flip <name>,<name2>' Names can be: Left, Middle, Right, L, M, R, 1, 2 ,3 (Levers are numbered 1-3, from left to right)";
 #pragma warning restore 414
     IEnumerator ProcessTwitchCommand(string command)
     {
@@ -329,7 +346,7 @@ public class qkGnomishPuzzleScript : MonoBehaviour {
         List<KMSelectable> objects = new List<KMSelectable>();
         foreach (string item in splitted)
         {
-            switch (item)
+            switch (item.Trim())
             {
                 case "left":
                 case "l":
@@ -348,17 +365,22 @@ public class qkGnomishPuzzleScript : MonoBehaviour {
                     break;
                 default:
                     yield return null;
-                    yield return "sendtochaterror Lever not valid!";
+                    yield return "sendtochaterror You are attempting to pull a lever that doesn't exist! Command ignored.";
                     yield break;
-                    break;
             }
         }
-        foreach(var obj in objects)
+        for (int a = 0; a < objects.Count; a++)
         {
+            KMSelectable obj = objects[a];
             yield return null;
-            yield return new WaitUntil(() => ableToInteract);
+            do
+                yield return string.Format("trycancel Your command has been canceled after {0} pull{1}.", a, a == 1 ? "" : "s");
+            while (!ableToInteract);
             obj.OnInteract();
-            yield return new WaitUntil(() => ableToInteract);
+            do
+                yield return string.Format("trycancel Your command has been canceled after {0} pull{1}.", a + 1, a == 0 ? "" : "s");
+            while (!ableToInteract);
+            yield return "solve";
         }
     }
 }

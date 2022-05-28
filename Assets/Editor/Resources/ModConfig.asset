@@ -31,6 +31,6 @@ MonoBehaviour:
 
 
     Original Puzzle in: Plants vs Zombies Battle for Neighborville'
-  version: 1.0
+  version: 1.0.1
   outputFolder: build
   previewImage: {fileID: 2800000, guid: 5c61c092d523b4b13bc5da9fe5dae576, type: 3}

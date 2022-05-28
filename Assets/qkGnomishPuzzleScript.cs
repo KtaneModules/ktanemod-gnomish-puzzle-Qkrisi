@@ -85,7 +85,7 @@ public class qkGnomishPuzzleScript : MonoBehaviour {
         Levers[1].GetComponent<KMSelectable>().OnInteract += () => startInteraction(2, Levers[1]);
         Levers[2].GetComponent<KMSelectable>().OnInteract += () => startInteraction(3, Levers[2]);
         Debug.LogFormat("[Gnomish Puzzle #{0}] Starting order: {1}", moduleId, SymbolNames.Join());
-        Debug.LogFormat("[Gnomish Puzzle #{0}] The judges deem you {1}worthy.", moduleId, judge ? "" : "not ");
+        Debug.LogFormat("[Gnomish Puzzle #{0}] The gnomes deem you {1}worthy.", moduleId, judge ? "" : "not ");
         Debug.LogFormat("[Gnomish Puzzle #{0}] Final order: {1}", moduleId, finalOrder.Join());
         FinalizeLog();
         logText.Reverse();
